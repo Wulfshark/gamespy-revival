@@ -41,6 +41,11 @@ Direction: games first, with groups, chat and voice built around them.
   Banned members are listed in Settings > Host this group with an Unban button. All of it is saved with the group.
 - **User Volume slider** in the right-click menu for anyone in your voice channel (0-200%, snaps to 100%).
 - Fixed: a kicked member's app no longer reconnects on its own.
+- **Privacy:** removed the developer's personal name from source headers and git history; server
+  programs are now built without build-folder paths. New `tools/privacy_check.py` scans the code,
+  programs and release zips for personal names, user folders, real IP addresses and personal
+  addresses, and runs before every push and release. Everything machine-specific (game folders,
+  IP addresses, names, settings) is worked out on each player's own PC.
 
 ## 0.6.1 (2026-11-18)
 - Fixed: the "Back up my identity" and game folder "Browse..." buttons crashed the app.
