@@ -41,6 +41,13 @@ Direction: games first, with groups, chat and voice built around them.
   Banned members are listed in Settings > Host this group with an Unban button. All of it is saved with the group.
 - **User Volume slider** in the right-click menu for anyone in your voice channel (0-200%, snaps to 100%).
 - Fixed: a kicked member's app no longer reconnects on its own.
+- **Encrypted Metal Fatigue online play:** the game add-on and the relay now agree on a fresh key for every
+  connection (X25519) and seal every message with ChaCha20-Poly1305, so match traffic can't be read or
+  changed on the way. Players on an older add-on still connect (without encryption), and the new add-on
+  still works with an older relay. Checked against Go's own crypto (200 key exchanges, 77 message sizes,
+  tampering rejected), in 32-bit, and in end-to-end host/join tests including mixed old and new players.
+- Fixed: after creating a player in Metal Fatigue, the add-on waits for the relay's player list, so the
+  game never briefly sees an empty lobby.
 - **Privacy:** removed the developer's personal name from source headers and git history; server
   programs are now built without build-folder paths. New `tools/privacy_check.py` scans the code,
   programs and release zips for personal names, user folders, real IP addresses and personal

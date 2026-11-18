@@ -69,6 +69,8 @@ type client struct {
 	name    string
 	addr    string
 	closed  bool
+	enc     *cipherState // set once the client has done the encrypted handshake
+	encOn   chan struct{}
 }
 
 type session struct {
@@ -407,7 +409,8 @@ func handle(c *client, t byte, p []byte) bool {
 }
 
 func serve(conn net.Conn) {
-	c := &client{conn: conn, out: make(chan []byte, 4096), addr: conn.RemoteAddr().String()}
+	c := &client{conn: conn, out: make(chan []byte, 4096), addr: conn.RemoteAddr().String(), encOn: make(chan struct{})}
+	var enc *cipherState // owned by this goroutine (reads) and the writer (writes) after the handshake
 	if tc, ok := conn.(*net.TCPConn); ok {
 		tc.SetNoDelay(true)
 		tc.SetKeepAlive(true)
@@ -421,6 +424,11 @@ func serve(conn net.Conn) {
 		for {
 			select {
 			case b := <-c.out:
+				select {
+				case <-c.encOn:
+					b = c.enc.seal(b)
+				default:
+				}
 				conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 				if _, err := conn.Write(b); err != nil {
 					conn.Close()
@@ -444,6 +452,28 @@ func serve(conn net.Conn) {
 		body := make([]byte, n)
 		if _, err := io.ReadFull(r, body); err != nil {
 			break
+		}
+		if enc != nil {
+			pt, err := enc.open(body)
+			if err != nil {
+				log.Printf("%s: frame failed its encryption check, closing", c.addr)
+				break
+			}
+			body = pt
+		} else if body[0] == cKex && !c.hello {
+			reply, st, err := keyExchange(body[1:])
+			if err != nil {
+				log.Printf("%s: key exchange failed: %v", c.addr, err)
+				break
+			}
+			// the reply goes out unencrypted; everything after it is sealed
+			conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if _, err := conn.Write(frame(sKex, reply)); err != nil {
+				break
+			}
+			enc, c.enc = st, st
+			close(c.encOn)
+			continue
 		}
 		if !handle(c, body[0], body[1:]) {
 			log.Printf("%s: bad frame type %#x, closing", c.addr, body[0])

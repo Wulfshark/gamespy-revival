@@ -66,5 +66,6 @@ void plat_free(void *p);
 void plat_lock(void);
 void plat_unlock(void);
 void plat_log(const char *fmt, ...);
+int  plat_random(u8 *p, u32 n);         /* 0 ok: fills p from the system's secure random source */
 
 #endif

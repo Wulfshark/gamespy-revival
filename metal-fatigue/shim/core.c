@@ -10,10 +10,11 @@
  *   Close, DestroyPlayer, Release
  */
 #include "mfnet.h"
+#include "crypto.h"
 
 #define PROTO 1
-enum { C_HELLO = 1, C_LIST, C_CREATE, C_JOIN, C_CREATE_PLAYER, C_SEND, C_SETFLAGS, C_LEAVE, C_DESTROY_PLAYER };
-enum { S_HELLO = 0x81, S_LIST, S_CREATE, S_JOIN, S_PLAYER, S_DATA, S_ROSTER, S_DESC, S_LOST };
+enum { C_HELLO = 1, C_LIST, C_CREATE, C_JOIN, C_CREATE_PLAYER, C_SEND, C_SETFLAGS, C_LEAVE, C_DESTROY_PLAYER, C_STATUS, C_KEX };
+enum { S_HELLO = 0x81, S_LIST, S_CREATE, S_JOIN, S_PLAYER, S_DATA, S_ROSTER, S_DESC, S_LOST, S_STATUS, S_KEX };
 
 #define MAX_FRAME 65535
 #define MAX_PAYLOAD 60000
@@ -51,11 +52,16 @@ static struct {
     int offline;                 /* hosting with no relay: a lobby of one, so the game does not crash */
     u32 fail_at; int failed;       /* back off after a failed connect so menus don't stall */
     u8 addr[80];                 /* connection blob handed to EnumConnections */
+    int enc;                     /* 1 once the connection to the relay is encrypted */
+    u32 roster_seq;              /* counts roster updates from the relay */
+    int plain_only;              /* this relay is an older one without encryption */
+    u8 ktx[32], krx[32]; u32 ntx, nrx;
 } G = { .sock = -1 };
 
 static void *mcpy(void *d, const void *s, u32 n) { u8 *a = d; const u8 *b = s; while (n--) *a++ = *b++; return d; }
 static void mzero(void *d, u32 n) { u8 *a = d; while (n--) *a++ = 0; }
 static u32 slen(const char *s) { u32 n = 0; if (s) while (s[n]) n++; return n; }
+static void nonce_for(u8 n[12], u32 c) { for (int i = 0; i < 12; i++) n[i] = 0; n[4] = (u8)c; n[5] = (u8)(c >> 8); n[6] = (u8)(c >> 16); n[7] = (u8)(c >> 24); }
 static int geq(const GUID *a, const GUID *b) { const u8 *x = (const u8 *)a, *y = (const u8 *)b; for (int i = 0; i < 16; i++) if (x[i] != y[i]) return 0; return 1; }
 static void scpy(char *d, const char *s, u32 cap) { u32 i = 0; if (s) for (; s[i] && i + 1 < cap; i++) d[i] = s[i]; d[i] = 0; }
 static u32 rd32(const u8 *p) { return p[0] | p[1] << 8 | p[2] << 16 | (u32)p[3] << 24; }
@@ -78,6 +84,7 @@ static void session_clear(void) {
 
 static void drop(const char *why) {
     if (G.sock >= 0) { plat_log("connection to relay closed: %s", why); plat_close(G.sock); }
+    G.enc = 0;
     G.sock = -1; G.rxlen = 0; G.list_valid = 0;
     /* keep roster and session flags so the game keeps a stable picture; its own timeouts take over */
     G.in_session = 0;
@@ -85,10 +92,13 @@ static void drop(const char *why) {
 
 static int send_frame(int type, const u8 *payload, u32 len) {
     if (G.sock < 0) return -1;
-    if (len > MAX_FRAME - 1) return -1;
-    G.tx[0] = (u8)(len + 1); G.tx[1] = (u8)((len + 1) >> 8); G.tx[2] = (u8)type;
+    if (len > MAX_FRAME - 1 - (G.enc ? 16u : 0u)) return -1;
+    u32 body = len + 1;
+    G.tx[2] = (u8)type;
     if (len) mcpy(G.tx + 3, payload, len);
-    if (plat_send(G.sock, G.tx, (int)len + 3, 3000) != 0) { drop("send failed"); return -1; }
+    if (G.enc) { u8 n[12]; nonce_for(n, G.ntx++); aead_seal(G.tx + 2, body, G.tx + 2 + body, G.ktx, n); body += 16; }
+    G.tx[0] = (u8)body; G.tx[1] = (u8)(body >> 8);
+    if (plat_send(G.sock, G.tx, (int)body + 2, 3000) != 0) { drop("send failed"); return -1; }
     return 0;
 }
 
@@ -116,7 +126,7 @@ static void on_frame(int type, const u8 *p, u32 len) {
             }
             o += 5 + nl;
         }
-        G.nroster = k;
+        G.nroster = k; G.roster_seq++;
         plat_log("roster: %d player(s)", (int)k);
         for (u32 i = 0; i < k; i++) plat_log("  %08x %s%s", G.roster[i].id, G.roster[i].name, G.roster[i].id == G.my_id ? " (me)" : "");
     } else if (type == S_DESC) {
@@ -140,8 +150,16 @@ static void pump(int until) {
             u32 n = G.rx[o] | G.rx[o + 1] << 8;
             if (n < 1) { drop("bad frame"); return; }
             if (G.rxlen - o < 2 + n) break;
-            int type = G.rx[o + 2];
-            on_frame(type, G.rx + o + 3, n - 1);
+            u8 *fb = G.rx + o + 2; u32 fl = n;
+            if (G.enc) {
+                u8 nn[12];
+                if (fl < 17) { drop("bad frame"); return; }
+                nonce_for(nn, G.nrx++);
+                if (aead_open(fb, fl - 16, fb + fl - 16, G.krx, nn) != 0) { drop("a frame failed its encryption check"); return; }
+                fl -= 16;
+            }
+            int type = fb[0];
+            on_frame(type, fb + 1, fl - 1);
             o += 2 + n;
             if (G.sock < 0) return;
             if (until && type == until) break;
@@ -169,6 +187,27 @@ static int request(int type, const u8 *payload, u32 len, int expect, int timeout
     }
 }
 
+/* Key exchange: X25519, then one ChaCha20 key per direction. Afterwards every frame is
+ * sealed with ChaCha20-Poly1305 (see crypt.go in the relay for the other side). */
+static int handshake(void) {
+    u8 priv[32], b[36], sh[32], ks[64], nn[12];
+    if (plat_random(priv, 32) != 0) { plat_log("no secure random source; connecting without encryption"); return 0; }
+    b[0] = 'M'; b[1] = 'F'; b[2] = 'E'; b[3] = '1';
+    x25519_base(b + 4, priv);
+    if (request(C_KEX, b, 36, S_KEX, 3000) != 0) return -1;
+    if (G.resp_len != 36 || G.resp[0] != 'M' || G.resp[1] != 'F' || G.resp[2] != 'E' || G.resp[3] != '1') { drop("bad key exchange"); return -1; }
+    x25519(sh, priv, G.resp + 4);
+    u8 any = 0; for (int i = 0; i < 32; i++) any |= sh[i];
+    if (!any) { drop("bad key exchange"); return -1; }
+    mzero(nn, 12); mcpy(nn, "MFE1-keys", 9);
+    chacha20_block(ks, sh, 0, nn);
+    mcpy(G.ktx, ks, 32); mcpy(G.krx, ks + 32, 32);
+    mzero(priv, 32); mzero(sh, 32); mzero(ks, 64);
+    G.ntx = G.nrx = 0; G.enc = 1;
+    plat_log("connection to relay is encrypted");
+    return 0;
+}
+
 static int ensure_connected(void) {
     if (G.sock >= 0) return 0;
     if (G.failed && plat_ms() - G.fail_at < 5000) return -1;
@@ -176,6 +215,14 @@ static int ensure_connected(void) {
     G.sock = plat_connect(G.host, G.port, 3000);
     if (G.sock < 0) { plat_log("cannot reach relay %s:%d", G.host, G.port); G.failed = 1; G.fail_at = plat_ms(); return -1; }
     G.failed = 0;
+    if (!G.plain_only && handshake() != 0) {
+        /* an older relay closes the connection on a message it does not know: reconnect without encryption */
+        plat_log("relay %s:%d does not support encryption (older relay); connecting without it", G.host, G.port);
+        G.plain_only = 1;
+        if (G.sock >= 0) plat_close(G.sock);
+        G.sock = plat_connect(G.host, G.port, 3000); G.rxlen = 0; G.enc = 0;
+        if (G.sock < 0) { plat_log("cannot reach relay %s:%d", G.host, G.port); G.failed = 1; G.fail_at = plat_ms(); return -1; }
+    }
     u8 b[4 + 16 + 1 + 64 + 1 + 64]; u32 n = slen(G.fp); if (n > 64) n = 64;
     u32 rn = slen(G.room); if (rn > 63) rn = 63;
     wr32(b, PROTO); mcpy(b + 4, &APP_GUID, 16); b[20] = (u8)n; mcpy(b + 21, G.fp, n);
@@ -239,7 +286,13 @@ static HRESULT STDCALL m_CreatePlayer(Obj *t, u32 *id, DPNAME *name, void *ev, v
         if (request(C_CREATE_PLAYER, b, 1 + n, S_PLAYER, 3000) == 0 && G.resp_len >= 5 && G.resp[0] == 0) {
             G.my_id = rd32(G.resp + 1); *id = G.my_id;
             plat_log("CreatePlayer \"%s\" -> id %08x", s ? s : "", G.my_id);
-            pump(0); /* pick up the roster that follows */
+            /* the relay sends the updated roster right after; wait briefly so the game sees itself in it */
+            u32 rs = G.roster_seq, st = plat_ms();
+            for (;;) {
+                pump(0);
+                if (G.roster_seq != rs || G.sock < 0 || plat_ms() - st >= 1000) break;
+                plat_wait(G.sock, 50);
+            }
             hr = DP_OK;
         }
     }
@@ -472,6 +525,7 @@ static HRESULT STDCALL m_InitializeConnection(Obj *t, void *conn, u32 flags) {
     const char *want = ip[0] ? ip : G.def_host; int same = 1;
     for (u32 i = 0;; i++) { if (want[i] != G.host[i]) { same = 0; break; } if (!want[i]) break; }
     if (!same) {
+        G.plain_only = 0; G.enc = 0;
         if (G.sock >= 0) plat_close(G.sock);
         G.sock = -1; G.rxlen = 0; G.list_valid = 0; G.failed = 0;
         session_clear();

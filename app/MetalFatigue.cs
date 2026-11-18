@@ -759,7 +759,7 @@ namespace MFNet
             });
             Note(g, "Friends put this address in their Server address box. Your router must forward the TCP port above to this PC, "
                 + "and Windows may ask to allow the server through the firewall. The address lookup asks api.ipify.org. "
-                + "This test server is not encrypted and has no password of its own: use a room code and stop it when you are done.",
+                + "Game traffic is encrypted (players need the online mod from 0.6.2 or later). The server has no password of its own: use a room code for private games.",
                 12, 54, 690, 52);
             return t;
         }
@@ -1098,7 +1098,7 @@ namespace MFNet
                 + "Good to know\r\n"
                 + "  - Every player needs their own copy of the game and identical game files (the same patch options). "
                 + "Games hosted from different files are marked in the list and cannot be joined.\r\n"
-                + "  - This is a test version. Traffic is not encrypted yet.\r\n"
+                + "  - Game traffic between players and the server is encrypted (X25519 and ChaCha20-Poly1305). Players on an older online mod still connect, without encryption.\r\n"
                 + "  - The game's own online log is mfnet.log in the game folder.\r\n\r\n"
                 + "Not affiliated with the game's publishers. Free software under the GNU GPL, version 3 or later; "
                 + "the source code comes with the app.";

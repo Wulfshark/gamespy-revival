@@ -26,7 +26,7 @@ def ip_ok(s, ctx):
         ip = ipaddress.ip_address(s)
     except ValueError:
         return True
-    if s in ALLOWED_IPS or ip in ipaddress.ip_network("203.0.113.0/24") \
+    if s in ALLOWED_IPS or ip.is_loopback or ip in ipaddress.ip_network("203.0.113.0/24") \
             or ip in ipaddress.ip_network("198.51.100.0/24") or ip in ipaddress.ip_network("192.0.2.0/24"):
         return True
     # certificate OIDs and version numbers inside binaries, e.g. "2.5.4.3"
