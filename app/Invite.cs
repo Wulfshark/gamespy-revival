@@ -58,11 +58,11 @@ namespace Revival
                 foreach (char ch in raw) v = (v << 5) | (ulong)Abc.IndexOf(ch);
                 int port = (int)(v & 0xFFFF);
                 if (port > 0)
-                    return ((v >> 40) & 255) + "." + ((v >> 32) & 255) + "." + ((v >> 24) & 255) + "." + ((v >> 16) & 255) + ":" + port;
+                    return Localize(((v >> 40) & 255) + "." + ((v >> 32) & 255) + "." + ((v >> 24) & 255) + "." + ((v >> 16) & 255) + ":" + port);
             }
             string h; int p;
-            if (Split(t, out h, out p)) return h + ":" + p;
-            if (Regex.IsMatch(t, @"^[A-Za-z0-9.\-]+$") && t.Contains(".")) return t + ":27901";
+            if (Split(t, out h, out p)) return Localize(h + ":" + p);
+            if (Regex.IsMatch(t, @"^[A-Za-z0-9.\-]+$") && t.Contains(".")) return Localize(t + ":27901");
             return "";
         }
 
@@ -88,7 +88,7 @@ namespace Revival
                     {
                         string ip = wc.DownloadString(url).Trim();
                         IPAddress a;
-                        if (IPAddress.TryParse(ip, out a) && a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) return ip;
+                        if (IPAddress.TryParse(ip, out a) && a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) { Config.Set("host.lastip", ip); return ip; }
                     }
                 }
                 catch (Exception) { }
@@ -130,6 +130,19 @@ namespace Revival
                 if (("|" + have + "|").IndexOf("|" + e + "|", StringComparison.OrdinalIgnoreCase) < 0) have = have.Length > 0 ? have + "|" + e : e;
             Config.Set("accounts.recent", have);
             return null;
+        }
+
+        // Your own invite, opened on the PC that hosts the group: use the local address instead, because most
+        // home routers won't let a PC reach itself through its internet address.
+        public static string Localize(string addr)
+        {
+            if (Config.Get("lobby.host", "0") != "1") return addr;
+            string port = ":" + Shell.HostPort();
+            if (!addr.EndsWith(port)) return addr;
+            string host = addr.Substring(0, addr.Length - port.Length);
+            if (host == Config.Get("host.lastip", "\u0000") || (MyName.Length > 0 && string.Equals(host, MyName, StringComparison.OrdinalIgnoreCase)))
+                return "127.0.0.1" + port;
+            return addr;
         }
 
         // Makes gamespy:// links open this app (current user only, no admin rights needed).

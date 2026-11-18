@@ -890,7 +890,7 @@ namespace Revival
 
             txtServer = Field("Invite link or code (an address works too)", 54, server ?? Config.Get("lobby.server", "127.0.0.1:27901"));
             txtUser = Field("Name", 104, Config.Get("lobby.user", ""));
-            txtPass = Field("Password (optional: leave empty and this PC is your key)", 154, "");
+            txtPass = Field("Password (optional, this PC is your key)", 154, "");
             txtPass.UseSystemPasswordChar = true;
 
             chkKeep = new CheckBox();
