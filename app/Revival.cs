@@ -20,7 +20,7 @@ namespace Revival
 {
     static class Program
     {
-        public const string Version = "0.6";
+        public const string Version = "0.6.1-dev";   // bump on every build; see CHANGELOG.md
 
         public static void CrashLog(Exception ex)
         {

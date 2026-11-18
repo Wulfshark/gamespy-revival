@@ -2489,6 +2489,14 @@ namespace Revival
             left.Dock = DockStyle.Left;
             left.Width = 300;
             left.BackColor = Look.Side;
+            Label ver = new Label();   // like Discord's build info at the bottom of the settings menu
+            ver.Text = "GameSpy Revival " + Program.Version + "\nGPL-3.0 \u00b7 github.com/Wulfshark/gamespy-revival";
+            ver.ForeColor = Look.Muted;
+            ver.Font = new Font("Segoe UI", 8f);
+            ver.Dock = DockStyle.Bottom;
+            ver.Height = 44;
+            ver.Padding = new Padding(16, 0, 0, 8);
+            left.Controls.Add(ver);
             menu.SetBounds(60, 40, 218, 700);
             menu.Picked += delegate(NavItem it)
             {
