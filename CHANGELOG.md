@@ -3,7 +3,9 @@
 Every build gets a version number. Test builds end in `-dev` (for example `0.6.1-dev`);
 releases drop it (`0.6.1`). Newest first. The version is shown at the bottom of Settings.
 
-## 0.6.1-dev (unreleased)
+## 0.6.1 (2026-11-18)
+- Fixed: the "Back up my identity" and game folder "Browse..." buttons crashed the app.
+- Invite links are clickable https links (GitHub Pages) that open the app or point to the download.
 - Opening your own invite link on the PC that hosts the group now takes you to your group
   (via 127.0.0.1) instead of failing on your internet address.
 - Shorter password label on the sign-in window.
