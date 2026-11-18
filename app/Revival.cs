@@ -1,5 +1,5 @@
 // GameSpy Revival - a standalone launcher and server browser for old multiplayer games.
-// Copyright (C) 2026 Warsh's revival project. A fan project, not affiliated with GameSpy or its owners.
+// Copyright (C) 2026 the GameSpy Revival contributors. A fan project, not affiliated with GameSpy or its owners.
 // Free software under the GNU GPL, version 3 or (at your option) any later version. No warranty.
 //
 // Written for the C# 5 compiler that ships with Windows (.NET Framework 4.x csc.exe).
