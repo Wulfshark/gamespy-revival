@@ -1,5 +1,5 @@
 // Metal Fatigue page of GameSpy Revival: lobby, server hosting and setup for play through the mfnet relay.
-// Copyright (C) 2026 Warsh's Metal Fatigue project.
+// Copyright (C) 2026 the GameSpy Revival contributors.
 // Free software under the GNU GPL, version 3 or (at your option) any later version. No warranty.
 //
 // Written for the C# 5 compiler that ships with Windows (.NET Framework 4.x csc.exe).
