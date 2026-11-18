@@ -30,17 +30,23 @@ namespace Revival
             return c.Substring(0, 4) + "-" + c.Substring(4, 4) + "-" + c.Substring(8);
         }
 
+        // The invite page on GitHub Pages: a normal https link that's clickable in Discord, texts and email.
+        // It opens the app through gamespy://join/, or points to the download if the app isn't installed.
+        public const string WebBase = "https://wulfshark.github.io/gamespy-revival/join.html#";
+
         // The link friends click. A host name (for example from a free dynamic-DNS service) goes in as is.
         public static string Link(string address)
         {
             string c = Code(address);
-            return Scheme + "://join/" + (c.Length > 0 ? c : address.Trim());
+            return WebBase + (c.Length > 0 ? c : address.Trim());
         }
 
         // Accepts a link, a code, or a plain address; returns host:port, or "" if it isn't any of those.
         public static string Resolve(string text)
         {
             string t = (text ?? "").Trim().Trim('<', '>', '"', '\'');
+            int hash = t.IndexOf('#');
+            if (hash >= 0) t = t.Substring(hash + 1);   // https://.../join.html#CODE
             int k = t.IndexOf("://", StringComparison.Ordinal);
             if (k > 0) t = t.Substring(k + 3);
             if (t.StartsWith("join/", StringComparison.OrdinalIgnoreCase)) t = t.Substring(5);
@@ -96,7 +102,7 @@ namespace Revival
 
         public static string MyLink(string ip, int port)
         {
-            if (MyName.Length > 0) return Scheme + "://join/" + MyName + ":" + port;
+            if (MyName.Length > 0) return WebBase + MyName + ":" + port;
             return ip.Length > 0 ? Link(ip + ":" + port) : "";
         }
 

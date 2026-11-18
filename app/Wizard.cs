@@ -391,7 +391,8 @@ namespace Revival
             y += 20;
             Label v = new Label();
             v.Text = value;
-            v.Font = new Font("Segoe UI Semibold", 12f);
+            v.Font = new Font("Segoe UI", 8.5f);
+            v.AutoEllipsis = true;
             v.ForeColor = Color.White;
             v.BackColor = Look.Rail;
             v.TextAlign = ContentAlignment.MiddleLeft;
