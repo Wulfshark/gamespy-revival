@@ -1,0 +1,61 @@
+GameSpy Revival 0.6 - how to play
+=================================
+
+A fan-made app for playing old multiplayer games together: groups with text and voice
+channels (it works like Discord), friends and DMs, live server lists, and Metal Fatigue
+online play. Not affiliated with GameSpy, Discord or the games' owners.
+Free and open source (GPL-3.0). Windows only for now.
+
+
+1. GETTING IN (everyone)
+   - Run GameSpyRevival.exe. Nothing to install.
+   - Click the invite link your host sent you (gamespy://join/...), or press + on the far
+     left, choose "Join a Group" and paste the link or code. Pick a name and press
+     Create account. No password needed: this PC is your key.
+   - The left rail works like Discord: GS (top) is Home (friends and DMs), then your
+     groups, then +, then the controller button for Games.
+   - Drag the top bar to move the window, double-click it to maximize.
+     The arrows top-left go back and forward (Alt+Left / Alt+Right).
+
+2. CHAT
+   - Text channels keep their history. @name pings someone, @everyone pings the group.
+   - Hover a message for quick reactions, reply, edit and delete. Right-click a message
+     for the full menu. Press Up in an empty message box to edit your last message.
+   - The smiley at the right of the message box adds emoji.
+   - Click someone's name for their profile card. Right-click them to message, add a note,
+     add or remove them as a friend, or ignore them (hides their messages).
+   - Click a category name (TEXT CHANNELS, VOICE CHANNELS) to fold it.
+     Right-click a channel to mute it.
+
+3. YOUR STATUS
+   - Click your name at the bottom left: Online, Idle, Do Not Disturb (no pop-ups or
+     sounds), Invisible, or a custom status. You go Idle by yourself after 10 minutes away.
+
+4. VOICE
+   - Click a voice channel to join. Hang up, mute, deafen and settings are bottom left.
+   - Settings (gear) -> Voice & Audio: mic and speakers, Mic Test, Voice Activity or
+     Push to Talk (works while a game has focus), sensitivity, noise reduction, sounds.
+   - Right-click someone in your channel to change their volume or mute them for you.
+   - Use headphones: there's no echo cancellation yet.
+
+5. GAMES (controller button on the left)
+   - Quake III Arena, OpenArena, Unreal Tournament: live public servers. Double-click one
+     to join. Use Find or Browse once so the app knows where the game is.
+   - Metal Fatigue: the Setup tab installs the online mod into your game folder. If your
+     host runs the group, the app points Metal Fatigue at their server automatically.
+     Press Play, open Multiplayer, host or join. Leave the game's Search IP box blank.
+   - "Invite crew" posts a Join card in your group's #looking-for-game channel.
+   - Battlefield 2, Red Alert 2 and Community Projects: links to the communities who keep
+     those games online.
+
+6. HOSTING (one person per group)
+   - Press + -> Create My Own (or pick a template), name your group, press Create.
+     This also runs the Metal Fatigue server. The last page gives you an invite link.
+   - Allow it through Windows Firewall when asked.
+   - Forward TCP ports 27901 (group) and 27900 (Metal Fatigue) on your router to this PC.
+   - Settings -> Host this group -> Copy invite link, and send it to friends.
+   - The group server runs in the background: it keeps going after you close the window,
+     and can start with Windows. Chat history is saved on the host's PC.
+
+Your settings live in %LOCALAPPDATA%\GameSpyRevival.
+If the app ever crashes, it writes crash.log next to GameSpyRevival.exe. Please send it.
