@@ -1,0 +1,5 @@
+LIBRARY DINPUT
+EXPORTS
+DirectInputCreateA=mf_DirectInputCreateA
+DirectInputCreateW=mf_DirectInputCreateW
+DirectInputCreateEx=mf_DirectInputCreateEx
